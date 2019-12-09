@@ -17,7 +17,7 @@ from VGGnet import VGGNetsmall
 from dataset import PreprocessOnTheFlyDataset
 
 
-def train(dataset_train_file, dataset_dev_file, model, mean_image_file=None, batchsize=32, gpu_id=0, max_epoch=20, img_size=224):
+def train(dataset_train_file, dataset_dev_file, model, mean_image_file="mean.npy", batchsize=32, gpu_id=0, max_epoch=20, img_size=224):
 
 	# 1. Dataset and mean image
 	if os.path.exists(mean_image_file):
