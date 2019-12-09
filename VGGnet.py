@@ -91,7 +91,7 @@ class VGGNetsmall(chainer.Chain):
 
             fc6=L.Linear(100352, 1024),
             fc7=L.Linear(1024, 128),
-            fc8=L.Linear(128, 32)
+            fc8=L.Linear(128, 2)
         )
 
     def __call__(self, x):
