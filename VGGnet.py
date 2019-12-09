@@ -38,9 +38,9 @@ class VGGNet(chainer.Chain):
             fc7=L.Linear(4096, 4096),
             fc8=L.Linear(4096, 1000)
         )
-        self.train = False
 
-    def __call__(self, x, t):
+
+    def __call__(self, x):
         h = F.relu(self.conv1_1(x))
         h = F.relu(self.conv1_2(h))
         h = F.max_pooling_2d(h, 2, stride=2)
@@ -72,37 +72,46 @@ class VGGNet(chainer.Chain):
 
 
 class VGGNetsmall(chainer.Chain):
+    """
+    VGGNet
+    - It takes (224, 224, 3) sized image as input
+    """
 
-            """
-            VGGNet
-            - It takes (224, 224, 3) sized image as input
-            """
+    def __init__(self):
+        super(VGGNetsmall, self).__init__(
+            conv1_1=L.Convolution2D(3, 32, 3, stride=1, pad=1),
+            conv1_2=L.Convolution2D(32, 32, 3, stride=1, pad=1),
 
-            def __init__(self):
-                super(VGGNetsmall, self).__init__(
-                    conv1_1=L.Convolution2D(3, 32, 3, stride=1, pad=1),
-                    conv1_2=L.Convolution2D(32, 32, 3, stride=1, pad=1),
+            conv2_1=L.Convolution2D(32, 64, 3, stride=1, pad=1),
+            conv2_2=L.Convolution2D(64, 64, 3, stride=1, pad=1),
 
-                    conv2_1=L.Convolution2D(32, 64, 3, stride=1, pad=1),
-                    conv2_2=L.Convolution2D(64, 64, 3, stride=1, pad=1),
+            conv3_1=L.Convolution2D(64, 128, 3, stride=1, pad=1),
+            conv3_2=L.Convolution2D(128, 128, 3, stride=1, pad=1),
+            conv3_3=L.Convolution2D(128, 128, 3, stride=1, pad=1),
 
-                    fc6=L.Linear(1024, 128),
-                    fc7=L.Linear(128, 128),
-                    fc8=L.Linear(128, 32)
-                )
-                self.train = False
+            fc6=L.Linear(100352, 1024),
+            fc7=L.Linear(1024, 128),
+            fc8=L.Linear(128, 2)
+        )
 
-            def __call__(self, x, t):
-                h = F.relu(self.conv1_1(x))
-                h = F.relu(self.conv1_2(h))
-                h = F.max_pooling_2d(h, 2, stride=2)
+    def __call__(self, x):
+        h = F.relu(self.conv1_1(x))
 
-                h = F.relu(self.conv2_1(h))
-                h = F.relu(self.conv2_2(h))
-                h = F.max_pooling_2d(h, 2, stride=2)
+        h = F.relu(self.conv1_2(h))
+        h = F.max_pooling_2d(h, 2, stride=2)
 
-                h = F.dropout(F.relu(self.fc6(h)), train=self.train, ratio=0.5)
-                h = F.dropout(F.relu(self.fc7(h)), train=self.train, ratio=0.5)
-                h = self.fc8(h)
-                return h
+        h = F.relu(self.conv2_1(h))
+        h = F.relu(self.conv2_2(h))
+        h = F.max_pooling_2d(h, 2, stride=2)
+
+        h = F.relu(self.conv3_1(h))
+        h = F.relu(self.conv3_2(h))
+        h = F.relu(self.conv3_3(h))
+        h = F.max_pooling_2d(h, 2, stride=2)
+
+        h = F.dropout(F.relu(self.fc6(h)), ratio=0.5)
+        h = F.dropout(F.relu(self.fc7(h)), ratio=0.5)
+        h = self.fc8(h)
+
+        return h
 
