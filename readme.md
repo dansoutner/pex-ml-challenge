@@ -1,0 +1,133 @@
+# Pex Machine Learning Technical Challenge #
+
+Part 1 - Create a labeled image dataset with two classes:
+1. Indoor photographs (e.g. Bedrooms, Bathrooms, Classrooms, Offices)
+2. Outdoor photographs (e.g. Landscapes, Skyscrapers, Mountains, Beaches)
+Download a subset of examples from the YouTube-8M labeled video dataset:
+https://research.google.com/youtube8m/explore.html
+Extract relevant frames from the videos to build a balanced dataset of indoor and outdoor
+images. The dataset should contain a few thousand images in total. This task can be performed
+with tools like OpenCV or FFmpeg.
+Create a train/test split of the data.
+
+Part 2 - Train an image classifier​ capable of detecting if a scene is ​indoors or outdoors​:
+The model can be an artificial neural network or another approach of your choosing.
+Evaluate the accuracy using the ratio of ​ all true results / the total number of examples tested​ .
+
+Part 3 - Create an evaluation tool for classifying single images with the trained model:
+This CLI tool needs to allow for image files to be input one at a time.
+The output needs to return a string containing the predicted class label.
+
+
+## Requirements ##
+Code is written for Python 3.7. 
+
+Python package requirements you will find in __requirements.txt__, 
+```pip instal -r requirements.txt```
+
+Tested on Ubuntu 19.10 and newer Debian; for __Windows / MacOS__ would be necessary some changes in bash scripts (video.download_youtube_url_segment:109)
+
+If you will prepare data you also would need __ffmpeg__ installed on your system. 
+
+The package __tensorflow__ is necessary 
+only for extracting data, not for training and eval phase.
+
+# 1. Data #
+
+Data download and preparation. You can skip this and download prepared dataset (zipped images)
+[directly from here](https://here.com). Possibly, you will need to fix the paths in data/*.csv files.
+
+This data were prepared as follows:
+
+## 1.1 Get data from Youtube 8M dataset ##
+
+We will download the validation set with annotated segments (as described on [Youtube 8m dataset webpage](https://research.google.com/youtube8m/download.html))
+
+```curl data.yt8m.org/download.py | partition=3/frame/validate mirror=eu python```
+
+and 1/10 of training data (should be enough for our challenge.) This is annotated only on video level.
+
+```curl data.yt8m.org/download.py | shard=1,10 partition=2/video/train mirror=eu python```
+
+## 1.2 Filter out videos only with indoor and outdoor ##
+
+Now, we filter out the videos only with desired indoor/outdoor videos.
+I choose labels as follows (with the most counts in dataset and the most distinguished in terms 
+indoor/outdoor):
+
+OUTDOORS = "Highway,Forest,Lake,Desert,Mountain,Building,House,Tree,River,Beach,Garden,City
+
+INDOORS = "Room,Bar,Restaurant,Home improvement,Kitchen,Living room,Gym,Classroom,Office"
+ 
+In output list we have also the URLs of the videos and (if known) time segments.
+ 
+```python prepare_data_extract.py /path/to/downloaded/tfrecords data/vocabulary.csv data/data_to_download.csv```
+
+If we check downloaded videos/labels, we see that is more or less balanced in terms of 
+ indoor/outdoor (55%/45%), by closer look I decided to lower count of _house_ images and _gym_ (compare to 
+ room label = a lot of videos of people in gym :) ).
+
+![](dataset_topic_hist.png)
+
+## 1.2 Download appropriate chunks of videos ##
+
+Let's download the data. We don't want to download the whole videos, so we download only 2 seconds segments.
+If we know segment, we use the segment times, otherwise we take two segments from 1/3 and 2/3 of video 
+(videos are usually couple minutes long, so we get more data).
+We are using csv list from previous step.
+
+```python prepare_data_download.py data/data_to_download.csv data/video/ data/videos.csv```
+
+## 1.3 Convert to images and split ##
+
+Convert videos to images, we take simply the first frame of video.
+
+```python prepare_data_convert.py data/videos.csv data/img/ data/img.csv```
+
+We split them to train/validation/test folds (90%/5%/5%):
+
+```
+python shuffle_and_split_data.py data/img.csv 0.1 data/img_dev+test.csv data/img_train.csv
+python shuffle_and_split_data.py data/img_dev+test.csv 0.5 data/img_dev.csv data/img_test.csv
+```
+
+We compute mean image from our train data (this helps a model):
+
+```python compute_mean_image.py data/train.csv -o data/mean_train_image.npz```
+
+We subtract this mean image from every image in data and then we scale data to the values between 0. and 1. (we do this on-the-fly, code in _dataset.py_)
+
+# 2. Train model #
+
+It requires the training and validation dataset of following format:
+- Each line contains one training example.
+- Each line consists of two elements separated by space(s).
+- The first element is a path to RGB image.
+- The second element is its ground truth label (integer, in our case 0 or 1).
+This is output from data preparation steps (section 1) or you download this [from here.](here.com)
+
+We pre-process __train__ data on-the-fly as follows: 
+
+1. All images are scaled so that shorter size is 224px.
+2. We randomly crop image to square 224x224.
+3. With probability 50% we flip image horizontally.
+
+We pre-process __dev__ and __test__ on-the-fly data as follows: 
+
+1. All images are scaled so that shorter size is 224px.
+2. And then we randomly crop images to square 224x224.
+
+We use neural network inspired by VGG net, but smaller (our dataset is smaller and time 
+for training limited). The model configuration could be changed in _VGGnet.py_
+
+```python train.py data/train.csv data/dev.csv --mean-image mean.npy --batchsize 32 --gpu-id 0 --max-epoch 20```
+
+# 3. Evaluate model #
+
+## 3.1 Evaluate model on all test data ##
+
+```python evaluate.py model/vggsmall_1.npz data/test.csv```
+
+## 3.2 Pass one image to the model ##
+
+```python ```
