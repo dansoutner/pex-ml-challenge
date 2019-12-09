@@ -49,7 +49,6 @@ def train(dataset_train_file, dataset_dev_file, model, mean_image_file="mean.npy
 
 		# 7. Evaluator
 		class TestModeEvaluator(extensions.Evaluator):
-
 			def evaluate(self):
 				model = self.get_target('main')
 				ret = super(TestModeEvaluator, self).evaluate()

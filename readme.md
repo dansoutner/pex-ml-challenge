@@ -64,10 +64,15 @@ In output list we have also the URLs of the videos and (if known) time segments.
 ```python prepare_data_extract.py /path/to/downloaded/tfrecords data/vocabulary.csv data/data_to_download.csv```
 
 If we check downloaded videos/labels, we see that is more or less balanced in terms of 
- indoor/outdoor (55%/45%), by closer look I decided to lower count of _house_ images and _gym_ (compare to 
- room label = a lot of videos of people in gym :) ).
-
-![](dataset_topic_hist.png)
+ indoor/outdoor (55%/45%).
+ 
+ ![](dataset_topic_hist.png)
+ 
+ By closer look I decided to get rid of _house_ images from dataset, because 
+ this label included a lot of videos from inside and outside of the house,
+  which is confusing for model. And I also decided to lower count of _gym_ images (compare to 
+ room label = a lot of videos of people in gym :) ). Afterwards, we have balanced dataset with 50% 
+ of indoor pictures and 50% of outdoor pictures.
 
 ## 1.2 Download appropriate chunks of videos ##
 
@@ -130,4 +135,8 @@ for training limited). The model configuration could be changed in _VGGnet.py_
 
 ## 3.2 Pass one image to the model ##
 
-```python ```
+```python eval_one.py data/samples/```
+
+## 4. Discussion ##
+
+I discovered, that mor tuning of data 
