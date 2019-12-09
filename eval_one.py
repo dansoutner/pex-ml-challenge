@@ -20,7 +20,16 @@ import dataset
 
 
 def eval(image_fname, model_file, mean_image_file="mean.npy", img_size=224):
+	"""
+	Loads image and decide with trained model if it is indoors / outdoors.
+	We test image 10 times with different random crops to achieve better results.
 
+	:param image_fname: path to image
+	:param model_file: path to model file
+	:param mean_image_file: path to mean image, if used by model training
+	:param img_size: size of image for model input
+	:return: probabilities of outdoor / indoor
+	"""
 	# load mean image if we have this
 	if os.path.exists(mean_image_file):
 		mean = np.load(mean_image_file)
@@ -62,7 +71,10 @@ def main():
 
 	res = eval(args.image_file, args.model_file, mean_image_file=args.mean_image,)
 
-	print("Outdoor: %.2f, Indoor: %.2f" % (res[0][0].data, res[0][1].data))
+	if res[0][0].data > res[0][1].data:
+		print("Outdoor (%.2f)" % res[0][0].data)
+	else:
+		print("Indoor: (%.2f)" % res[0][1].data)
 
 if __name__ == "__main__":
 	main()
