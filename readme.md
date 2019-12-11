@@ -25,12 +25,14 @@ Code is written for Python 3.7.
 Python package requirements you will find in __requirements.txt__, 
 ```pip instal -r requirements.txt```
 
-Tested on Ubuntu 19.10 and newer Debian; for __Windows / MacOS__ would be necessary some changes in bash scripts (video.download_youtube_url_segment:109)
+Tested on __Ubuntu 19.10__ and __Debian 10___; for __Windows / MacOS__ would be necessary some changes in bash 
+scripts for data preparation (video.download_youtube_url_segment:109)
 
 If you will prepare data you also would need __ffmpeg__ installed on your system. 
 
 The package __tensorflow__ is necessary 
-only for extracting data, not for training and eval phase.
+only for extracting data, not for training and eval phase (training and eval of model
+ is written in __Chainer__ toolkit).
 
 # 1. Data #
 
@@ -61,19 +63,23 @@ INDOORS = "Room,Bar,Restaurant,Home improvement,Kitchen,Living room,Gym,Classroo
  
 In output list we have also the URLs of the videos and (if known) time segments.
  
-```python prepare_data_extract.py /path/to/downloaded/tfrecords data/vocabulary.csv data/data_to_download.csv```
+```
+python prepare_data_extract.py /path/to/downloaded/tfrecords data/vocabulary.csv data/data_to_download.csv
+#python prepare_data_extract.py <dir with downloaded dataset *.tfrecord> <downloaded vocabulary from dataes dataset> <output file>
+```
 
 If we check downloaded videos/labels, we see that is more or less balanced in terms of 
  indoor/outdoor (55%/45%).
  
- ![](dataset_topic_hist.png)
+ ![Histogtam of topics](https://github.com/dansoutner/pex-ml-challenge/blob/master/data/dataset_topic_hist.png)
  
- By closer look I decided to get rid of _house_ images from dataset, because 
+ By closer look I decided to get rid of _House_ images from dataset, because 
  this label included a lot of videos from inside and outside of the house,
-  which is confusing for model. And I also decided to lower count of _gym_ images (compare to 
+  which is confusing for model. I excluded also videos which also have label _Game_ 
+  (dataset includes also some videos from playing Minecraft etc.). And I also decided to lower count of _gym_ images (compare to 
  room label = a lot of videos of people in gym :) ). Afterwards, we have balanced dataset with 50% 
- of indoor pictures and 50% of outdoor pictures.
-
+ of indoor pictures and 50% of outdoor pictures.  
+ 
 ## 1.2 Download appropriate chunks of videos ##
 
 Let's download the data. We don't want to download the whole videos, so we download only 2 seconds segments.
@@ -81,13 +87,17 @@ If we know segment, we use the segment times, otherwise we take two segments fro
 (videos are usually couple minutes long, so we get more data).
 We are using csv list from previous step.
 
-```python prepare_data_download.py data/data_to_download.csv data/video/ data/videos.csv```
+```
+python prepare_data_download.py data/data_to_download.csv data/video/ data/videos.csv
+```
 
 ## 1.3 Convert to images and split ##
 
-Convert videos to images, we take simply the first frame of video.
+Next step is to convert videos to images, we take simply the first frame of video.
 
-```python prepare_data_convert.py data/videos.csv data/img/ data/img.csv```
+```
+python prepare_data_convert.py data/videos.csv data/img/ data/img.csv
+```
 
 We split them to train/validation/test folds (90%/5%/5%):
 
@@ -96,7 +106,7 @@ python shuffle_and_split_data.py data/img.csv 0.1 data/img_dev+test.csv data/img
 python shuffle_and_split_data.py data/img_dev+test.csv 0.5 data/img_dev.csv data/img_test.csv
 ```
 
-We compute mean image from our train data (this helps a model):
+We compute mean image from our train data (this usually helps a model to better fit):
 
 ```python compute_mean_image.py data/train.csv -o data/mean_train_image.npz```
 
@@ -116,27 +126,48 @@ We pre-process __train__ data on-the-fly as follows:
 1. All images are scaled so that shorter size is 224px.
 2. We randomly crop image to square 224x224.
 3. With probability 50% we flip image horizontally.
+4. Scale values to interval (0, 1)
 
 We pre-process __dev__ and __test__ on-the-fly data as follows: 
 
 1. All images are scaled so that shorter size is 224px.
 2. And then we randomly crop images to square 224x224.
+3. Scale values to interval (0, 1)
 
-We use neural network inspired by VGG net, but smaller (our dataset is smaller and time 
+We use neural network inspired by VGG net, but significantly smaller
+ (our dataset is smaller and time 
 for training limited). The model configuration could be changed in _VGGnet.py_
 
 ```python train.py data/train.csv data/dev.csv --mean-image mean.npy --batchsize 32 --gpu-id 0 --max-epoch 20```
+
+With my very basic setup, it trains in 9 epoch to about 84% accuracy on validation set.
+
+![Loss during training](https://github.com/dansoutner/pex-ml-challenge/blob/master/models/loss.png)
+
+![Accuracy during training](https://github.com/dansoutner/pex-ml-challenge/blob/master/models/accuracy.png)
 
 # 3. Evaluate model #
 
 ## 3.1 Evaluate model on all test data ##
 
-```python evaluate.py model/vggsmall_1.npz data/test.csv```
+For evaluating on test dataset we run eval.py script.
+The provided trained model on my simple test (about 600 images) has 
+performance about 80% (measured in accuracy).   
+
+It requires the test dataset of following format (csv file):
+- Each line contains one training example.
+- Each line consists of two elements separated by space(s).
+- The first element is a path to RGB image.
+
+```python eval.py data/test.csv model/vggsmall_1.npz ```
 
 ## 3.2 Pass one image to the model ##
+For evaluating one input image run 
 
-```python eval_one.py data/samples/```
+```python eval_one.py data/samples/img.tiff models/model9 --mean-image models/mean.npy```
 
-## 4. Discussion ##
+where parameters are 
+```
+<input image file> <model file> --mean/image <mean computed image file>
+```
 
-I discovered, that mor tuning of data 
