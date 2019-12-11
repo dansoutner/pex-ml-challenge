@@ -6,7 +6,9 @@ from chainer import iterators
 from chainer.training import extensions
 from chainer import links as L
 import chainer
+from chainer.dataset import convert
 
+import logging
 import argparse
 import numpy as np
 import os
@@ -15,29 +17,40 @@ from VGGnet import VGGNetsmall2
 from dataset import PreprocessOnTheFlyDataset
 
 
-def eval(dataset_list_eval, model_file, mean_image_file="mean.npy", batch_size=64, gpu_id=0, img_size=224):
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+
+def eval(dataset_list_eval, model_file, mean_image_file="mean.npy", batch_size=32, gpu_id=0, img_size=224):
 
 	if os.path.exists(mean_image_file):
 		mean = np.load(mean_image_file)
+		logging.info("Loading mean image file %s" % mean_image_file)
 	else:
 		mean = np.ones((3, img_size, img_size)) * 128
 
-	dataset_eval = PreprocessOnTheFlyDataset(dataset_list_eval, mean, img_size, random_flip=False, random_crop=True)
+	dataset_eval = PreprocessOnTheFlyDataset(dataset_list_eval, mean, img_size, random_flip=False, random_crop=False)
 	eval_iter = iterators.SerialIterator(dataset_eval, batch_size, False, False)
 
 	model = VGGNetsmall2()
 	chainer.serializers.load_npz(model_file, model)
 	model = L.Classifier(model)
+	model.compute_accuracy = True
 
 	if gpu_id >= 0:
 		model.to_gpu(gpu_id)
 
+	N_sum = 0
+	acc_sum = 0
 	with chainer.using_config('train', False):
-		result = extensions.Evaluator(eval_iter, model).evaluate()
-
-	print(result)
-
-	return result
+		with chainer.using_config('backprop', False):
+			for batch in eval_iter:
+				x, t = chainer.dataset.convert.concat_examples(batch)
+				model.forward(x, t)
+				acc = model.accuracy.data
+				N_sum += len(batch)
+				acc_sum += acc * len(batch)
+				print(acc, acc_sum / N_sum)
+	return acc_sum / N_sum
 
 
 def main():
@@ -56,10 +69,10 @@ def main():
 	args = parser.parse_args()
 
 	res = eval(args.dataset_list_eval, args.model_file,
-	     mean_image_file=args.mean_image, gpu_id=args.gpu_id,
-	     batch_size=args.batch_size, img_size=args.img_size)
+		 mean_image_file=args.mean_image, gpu_id=args.gpu_id,
+		 batch_size=args.batch_size, img_size=args.img_size)
 
-	print(res)
+	print("Overall accuracy on test data %.4f" % res)
 
 if __name__ == "__main__":
 	main()
