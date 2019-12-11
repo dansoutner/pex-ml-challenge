@@ -36,7 +36,7 @@ def main():
 	args = parser.parse_args()
 
 	data = dataset.PreprocessOnTheFlyDataset(args.dataset, np.zeros((3, 224, 224)), 224, random_flip=False, random_crop=True)
-	mean = compute_mean(data)
+	mean = compute_mean(data) * 255
 	np.save(args.output, mean)
 
 
