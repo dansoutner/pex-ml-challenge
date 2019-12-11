@@ -152,7 +152,7 @@ With my very basic setup, it trains in 9 epoch to about 84% accuracy on validati
 
 For evaluating on test dataset we run eval.py script.
 The provided trained model on my simple test (about 600 images) has 
-performance about 80% (measured in accuracy).   
+performance __about 80%__ (measured in accuracy).   
 
 It requires the test dataset of following format (csv file):
 - Each line contains one training example.
@@ -171,3 +171,4 @@ where parameters are
 <input image file> <model file> --mean/image <mean computed image file>
 ```
 
+Some sample images are stored in _data/samples_.
