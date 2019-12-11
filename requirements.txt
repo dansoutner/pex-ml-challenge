@@ -1,8 +1,7 @@
-pafy==0.5.5
-opencv_contrib_python==4.1.2.30
-chainer==7.0.0
-cupy-cuda100>=7.0.0,<8.0.0
-numpy==1.17.3
 youtube_dl==2019.11.28
-tensorflow==2.0.0
+chainer==7.0.0
+opencv_contrib_python==4.1.2.30
+pafy==0.5.5
 pandas==0.25.3
+numpy==1.17.3
+tensorflow==2.0.0
