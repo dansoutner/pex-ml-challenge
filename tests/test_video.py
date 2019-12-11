@@ -5,6 +5,8 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import unittest
 import video
 import logging
+import cv2
+import numpy as np
 
 
 logging.disable(logging.CRITICAL)
@@ -24,7 +26,17 @@ class TestVideo(unittest.TestCase):
 		self.assertTrue(ret)
 		ret = video.get_image_from_first_video_frame("video_samples/PIky_1107A.mp4", "test.jpg")
 		self.assertTrue(ret)
-		
+
+		# test if we get correct images
+		original = cv2.imread("video_samples/PIky_1107A.mp4.tiff")
+		tested_tiff = cv2.imread("test.tiff")
+		difference = cv2.subtract(original, tested_tiff)
+		self.assertEqual(np.sum(difference), 0)
+
+		original = cv2.imread("video_samples/PIky_1107A.mp4.jpg")
+		tested_jpg = cv2.imread("test.jpg")
+		difference = cv2.subtract(original, tested_jpg)
+		self.assertEqual(np.sum(difference), 0)
 
 	def test_get_video_length(self):
 		ret = video.get_video_length("video_samples/PIky_1107A.mp4")
