@@ -1,22 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-from chainer import iterators
-from chainer import optimizers
-from chainer import training
-from chainer.training import extensions
-from chainer import links as L
-from chainer import function as F
 import chainer
 
 import argparse
 import numpy as np
 import os
 import cv2
+import logging
 
-from VGGnet import VGGNetsmall
+from VGGnet import VGGNetsmall2
 import dataset
+
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
 def eval(image_fname, model_file, mean_image_file="mean.npy", img_size=224):
@@ -33,31 +30,34 @@ def eval(image_fname, model_file, mean_image_file="mean.npy", img_size=224):
 	# load mean image if we have this
 	if os.path.exists(mean_image_file):
 		mean = np.load(mean_image_file)
+		logging.info("Loading mean image file %s" % mean_image_file)
 	else:
 		mean = np.ones((3, img_size, img_size)) * 128
 
 	# load model
-	model = VGGNetsmall()
+	model = VGGNetsmall2()
 	chainer.serializers.load_npz(model_file, model)
 
 	# load image
 	image = np.asarray(cv2.imread(image_fname), dtype=np.float32)
 
 	# we take image 10-times randomly, cropped
-	image = dataset.scale(image, smaller_size=img_size)
-	result = []
-	for _ in range(10):
-		img_in = dataset.random_square_crop(image, img_size)
-		img_in = img_in.transpose(2, 0, 1)
-		img_in -= mean
-		img_in *= (1.0 / 255.0)  # Scale to [0, 1]
+	with chainer.using_config('train', False):
+		image = dataset.scale(image, smaller_size=img_size)
+		result = []
+		for _ in range(1):
+			img_in = dataset.center_square_crop(image, img_size)
+			#img_in = dataset.random_square_crop(image, img_size)
+			img_in = img_in.transpose(2, 0, 1)
+			img_in -= mean
+			img_in *= (1.0 / 255.0)  # Scale to [0, 1]
 
-		y = model(np.asarray([img_in], dtype=np.float32))
-		y = chainer.functions.softmax(y)
-		result.append(y)
+			y = model(np.asarray([img_in], dtype=np.float32))
+			y = chainer.functions.softmax(y)
+			result.append(y.data)
 
-	# and return the mean value from this 10 results
-	return np.mean(result, axis=0)
+		# and return the mean value from this 10 results
+		return np.mean(result, axis=0)
 
 
 def main():
@@ -71,10 +71,10 @@ def main():
 
 	res = eval(args.image_file, args.model_file, mean_image_file=args.mean_image,)
 
-	if res[0][0].data > res[0][1].data:
-		print("Outdoor (%.2f)" % res[0][0].data)
+	if res[0][0] > res[0][1]:
+		print("Outdoor (%.2f)" % res[0][0])
 	else:
-		print("Indoor: (%.2f)" % res[0][1].data)
+		print("Indoor: (%.2f)" % res[0][1])
 
 if __name__ == "__main__":
 	main()
