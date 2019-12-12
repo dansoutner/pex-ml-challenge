@@ -37,13 +37,14 @@ only for extracting data, not for training and eval phase (training and eval of 
 # 1. Data #
 
 Data download and preparation. You can skip this and download prepared dataset (zipped images)
-[directly from here](https://here.com). Possibly, you will need to fix the paths in data/*.csv files.
+[directly from here](https://drive.google.com/file/d/1Pk7MEDnUqW1oX8atJnihpn1hOPHh5nw4/view?usp=sharing). Possibly, you will need to fix the paths in data/*.csv files.
 
 This data were prepared as follows:
 
 ## 1.1 Get data from Youtube 8M dataset ##
 
-We will download the validation set with annotated segments (as described on [Youtube 8m dataset webpage](https://research.google.com/youtube8m/download.html))
+We will download the validation set with annotated segments (as described on 
+[Youtube 8m dataset webpage](https://research.google.com/youtube8m/download.html))
 
 ```curl data.yt8m.org/download.py | partition=3/frame/validate mirror=eu python```
 
@@ -93,7 +94,8 @@ python prepare_data_download.py data/data_to_download.csv data/video/ data/video
 
 ## 1.3 Convert to images and split ##
 
-Next step is to convert videos to images, we take simply the first frame of video.
+Next step is to convert videos to images, we take simply the first
+ frame of video.
 
 ```
 python prepare_data_convert.py data/videos.csv data/img/ data/img.csv
@@ -119,7 +121,8 @@ It requires the training and validation dataset of following format:
 - Each line consists of two elements separated by space(s).
 - The first element is a path to RGB image.
 - The second element is its ground truth label (integer, in our case 0 or 1).
-This is output from data preparation steps (section 1) or you download this [from here.](here.com)
+This is output from data preparation steps (section 1) or you download
+ this [from here.](https://drive.google.com/file/d/1Pk7MEDnUqW1oX8atJnihpn1hOPHh5nw4/view?usp=sharing)
 
 We pre-process __train__ data on-the-fly as follows: 
 
